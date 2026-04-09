@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambridge PET Reading Practice Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Include jsPDF and html2canvas for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Include Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        
+        /* High-Res Recreations of PDF Images/Notices */
+        .notice-postit {
+            background: #fef08a; /* yellow-200 */
+            border-bottom-right-radius: 60px 5px;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            transform: rotate(-1deg);
+        }
+        .notice-formal {
+            background: white;
+            border: 4px solid #ef4444; /* red-500 */
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .notice-board {
+            background: #fff;
+            border: 2px dashed #9ca3af;
+            border-radius: 4px;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .notice-board::before {
+            content: '📌';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+        }
+        
+        /* Custom Radio Buttons */
+        .custom-radio {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            position: relative;
+            top: 4px;
+            margin-right: 8px;
+        }
+        .custom-radio:checked {
+            background-color: #3b82f6;
+            border: 2px solid #3b82f6;
+            box-shadow: inset 0 0 0 4px white;
+        }
+        
+        /* Smooth transitions */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* PDF Report Styles (Hidden until generated) */
+        #pdfReportContainer {
+            position: absolute;
+            left: -9999px; /* Move off-screen instead of using display:none or opacity:0 to allow rendering */
+            top: 0;
+            width: 800px;
+            background: white;
+            padding: 0;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header / Top Bar -->
+    <header class="bg-blue-700 text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-graduation-cap text-3xl"></i>
+                <div>
+                    <h1 class="text-xl font-bold">B1 Preliminary (PET)</h1>
+                    <p class="text-blue-200 text-sm">Reading Practice Test</p>
+                </div>
+            </div>
+            <div class="flex items-center bg-blue-800 px-4 py-2 rounded-lg gap-3">
+                <i class="fa-regular fa-clock text-xl"></i>
+                <span id="timer" class="text-2xl font-mono font-bold tracking-wider">45:00</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto w-full px-4 py-8">
+        <!-- Candidate Information Form -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border-t-4 border-blue-600 fade-in">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Candidate Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="candidateName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="candidateName" class="w-full border-gray-300 border rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 text-lg" placeholder="Type your name here...">
+                </div>
+                <div>
+                    <label for="examDate" class="block text-sm font-medium text-gray-700 mb-1">Test Date</label>
+                    <input type="date" id="examDate" class="w-full border-gray-300 border rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                </div>
+            </div>
+        </div>
+
+        <form id="examForm" onsubmit="submitExam(event)">
+            
+            <!-- PART 1 -->
+            <div class="mb-10 fade-in" style="animation-delay: 0.1s;">
+                <div class="bg-blue-50 text-blue-900 px-6 py-4 rounded-t-xl font-semibold text-lg border border-blue-200">
+                    Part 1: Questions 1 - 5
+                </div>
+                <div class="bg-white border border-blue-200 border-t-0 rounded-b-xl p-6 shadow-sm">
+                    <p class="mb-6 text-gray-600 italic">Look at the text in each question. What does it say? Choose the correct letter A, B or C.</p>
+
+                    <!-- Question 1 -->
+                    <div class="mb-10 pb-8 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="notice-postit max-w-sm mx-auto">
+                            <p class="font-bold mb-2 text-lg">Carrie,</p>
+                            <p class="mb-2 text-lg">I won't be home until 6 pm. Have the snack I've left for you and Josh and then I'll cook dinner when I get home.</p>
+                            <p class="text-right font-bold text-lg">Love Mum</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold mb-4 text-lg">1. What does Carrie's mum want?</p>
+                            <div class="space-y-3">
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q1" value="A" class="custom-radio">
+                                    <span class="text-lg"><strong>A.</strong> Carrie to get dinner ready for her and Josh by 6 p.m.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q1" value="B" class="custom-radio">
+                                    <span class="text-lg"><strong>B.</strong> Carrie not to give Josh anything to eat until she arrives home.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q1" value="C" class="custom-radio">
+                                    <span class="text-lg"><strong>C.</strong> Carrie and Josh to eat something before they have dinner.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 2 -->
+                    <div class="mb-10 pb-8 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="notice-formal max-w-sm mx-auto">
+                            <h3 class="text-2xl font-black uppercase text-red-600 mb-2">Students</h3>
+                            <p class="text-xl font-bold mb-2">Keep to the left!</p>
+                            <p class="text-gray-700 font-medium">Running in the corridor is forbidden at all times.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold mb-4 text-lg">2. What does this notice mean?</p>
+                            <div class="space-y-3">
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q2" value="A" class="custom-radio">
+                                    <span class="text-lg"><strong>A.</strong> Students cannot use this corridor to go to the sports hall.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q2" value="B" class="custom-radio">
+                                    <span class="text-lg"><strong>B.</strong> Students must never run along the corridor.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q2" value="C" class="custom-radio">
+                                    <span class="text-lg"><strong>C.</strong> Students on the right side of the corridor are permitted to walk quickly.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Question 3 -->
+                    <div class="mb-10 pb-8 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="notice-board max-w-sm mx-auto text-center">
+                            <i class="fa-solid fa-masks-theater text-3xl text-purple-600 mb-2"></i>
+                            <p class="text-lg font-medium">Anyone wanting to be in the school play this term should give their name to Mrs Walters by the end of the week.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold mb-4 text-lg">3. What should you do if you want to act in the play?</p>
+                            <div class="space-y-3">
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q3" value="A" class="custom-radio">
+                                    <span class="text-lg"><strong>A.</strong> Tell Mrs Walters before Friday that you want to join.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q3" value="B" class="custom-radio">
+                                    <span class="text-lg"><strong>B.</strong> Wait for Mrs Walters to give you the names of the actors.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q3" value="C" class="custom-radio">
+                                    <span class="text-lg"><strong>C.</strong> Find Mrs Walters to buy a ticket for the performance.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Question 4 -->
+                    <div class="mb-10 pb-8 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="bg-blue-100 p-5 rounded border border-blue-300 text-center shadow max-w-sm mx-auto">
+                            <p class="text-xl font-bold text-blue-900 mb-1">LIBRARY CLOSURE</p>
+                            <p class="text-blue-800">The library will be closed for painting until next Tuesday. Please use the main study hall for quiet reading.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold mb-4 text-lg">4. Why can't students use the library today?</p>
+                            <div class="space-y-3">
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q4" value="A" class="custom-radio">
+                                    <span class="text-lg"><strong>A.</strong> It is being used as a quiet study hall.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q4" value="B" class="custom-radio">
+                                    <span class="text-lg"><strong>B.</strong> Decorating work is currently taking place there.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q4" value="C" class="custom-radio">
+                                    <span class="text-lg"><strong>C.</strong> It does not open until next Tuesday.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Question 5 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="bg-gray-800 text-white p-5 rounded shadow max-w-sm mx-auto text-center font-mono">
+                            <p class="text-xl border-b border-gray-600 pb-2 mb-2">💻 SYSTEM UPDATE</p>
+                            <p>School WiFi will be down for maintenance from 8:00 PM to 10:00 PM tonight. Save your work before 8:00 PM.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold mb-4 text-lg">5. What must students do regarding the WiFi?</p>
+                            <div class="space-y-3">
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q5" value="A" class="custom-radio">
+                                    <span class="text-lg"><strong>A.</strong> Stop using the internet completely tonight.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q5" value="B" class="custom-radio">
+                                    <span class="text-lg"><strong>B.</strong> Ensure they save their documents prior to 8:00 PM.</span>
+                                </label>
+                                <label class="flex items-start cursor-pointer p-3 hover:bg-gray-50 rounded-lg transition">
+                                    <input type="radio" name="q5" value="C" class="custom-radio">
+                                    <span class="text-lg"><strong>C.</strong> Wait until 10:00 PM to start their homework.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PART 2 -->
+            <div class="mb-10 fade-in" style="animation-delay: 0.15s;">
+                <div class="bg-indigo-50 text-indigo-900 px-6 py-4 rounded-t-xl font-semibold text-lg border border-indigo-200">
+                    Part 2: Questions 6 - 10
+                </div>
+                <div class="bg-white border border-indigo-200 border-t-0 rounded-b-xl p-6 shadow-sm">
+                    <p class="mb-6 text-gray-600 italic">For each question, choose the correct answer. The people below all want to watch a television programme. There are descriptions of eight television programmes. Decide which programme would be the most suitable for the following people.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- People -->
+                        <div>
+                            <h3 class="font-bold text-xl mb-4 border-b pb-2">The People</h3>
+                            
+                            <div class="space-y-6">
+                                <div class="bg-gray-50 p-4 rounded-lg flex gap-4">
+                                    <div class="bg-indigo-600 text-white font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0">6</div>
+                                    <div>
+                                        <p class="mb-2"><strong>Ivan</strong> enjoys watching programmes about real people. He'd like to learn about the lives of people who live in interesting places. He prefers watching programmes that are funny.</p>
+                                        <select name="q6" class="w-full bg-white border border-indigo-300 rounded p-2 focus:ring-2 focus:ring-indigo-500">
+                                            <option value="" disabled selected>Select the best programme...</option>
+                                            <option value="A">A - Nature's Way</option>
+                                            <option value="B">B - The Big Laugh</option>
+                                            <option value="C">C - Island Life</option>
+                                            <option value="D">D - Historical Journeys</option>
+                                            <option value="E">E - City Streets</option>
+                                            <option value="F">F - The Cooking Competition</option>
+                                            <option value="G">G - Sports Weekly</option>
+                                            <option value="H">H - Music Makers</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50 p-4 rounded-lg flex gap-4">
+                                    <div class="bg-indigo-600 text-white font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0">7</div>
+                                    <div>
+                                        <p class="mb-2"><strong>Rosa</strong> loves learning about history. She wants to watch a documentary that explores ancient civilizations and shows what their cities looked like. She doesn't want anything too serious.</p>
+                                        <select name="q7" class="w-full bg-white border border-indigo-300 rounded p-2 focus:ring-2 focus:ring-indigo-500">
+                                            <option value="" disabled selected>Select the best programme...</option>
+                                            <option value="A">A - Nature's Way</option>
+                                            <option value="B">B - The Big Laugh</option>
+                                            <option value="C">C - Island Life</option>
+                                            <option value="D">D - Historical Journeys</option>
+                                            <option value="E">E - City Streets</option>
+                                            <option value="F">F - The Cooking Competition</option>
+                                            <option value="G">G - Sports Weekly</option>
+                                            <option value="H">H - Music Makers</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg flex gap-4">
+                                    <div class="bg-indigo-600 text-white font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0">8</div>
+                                    <div>
+                                        <p class="mb-2"><strong>Anton</strong> is very interested in the environment and animals. He wants to watch something relaxing that features beautiful landscapes and wildlife from around the world.</p>
+                                        <select name="q8" class="w-full bg-white border border-indigo-300 rounded p-2 focus:ring-2 focus:ring-indigo-500">
+                                            <option value="" disabled selected>Select the best programme...</option>
+                                            <option value="A">A - Nature's Way</option>
+                                            <option value="B">B - The Big Laugh</option>
+                                            <option value="C">C - Island Life</option>
+                                            <option value="D">D - Historical Journeys</option>
+                                            <option value="E">E - City Streets</option>
+                                            <option value="F">F - The Cooking Competition</option>
+                                            <option value="G">G - Sports Weekly</option>
+                                            <option value="H">H - Music Makers</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50 p-4 rounded-lg flex gap-4">
+                                    <div class="bg-indigo-600 text-white font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0">9</div>
+                                    <div>
+                                        <p class="mb-2"><strong>Maria</strong> is looking for a programme she can watch with her teenage children. They all love music and enjoy seeing young people compete against each other to win a prize.</p>
+                                        <select name="q9" class="w-full bg-white border border-indigo-300 rounded p-2 focus:ring-2 focus:ring-indigo-500">
+                                            <option value="" disabled selected>Select the best programme...</option>
+                                            <option value="A">A - Nature's Way</option>
+                                            <option value="B">B - The Big Laugh</option>
+                                            <option value="C">C - Island Life</option>
+                                            <option value="D">D - Historical Journeys</option>
+                                            <option value="E">E - City Streets</option>
+                                            <option value="F">F - The Cooking Competition</option>
+                                            <option value="G">G - Sports Weekly</option>
+                                            <option value="H">H - Music Makers</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50 p-4 rounded-lg flex gap-4">
+                                    <div class="bg-indigo-600 text-white font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0">10</div>
+                                    <div>
+                                        <p class="mb-2"><strong>David</strong> wants to learn some new skills for his hobby. He enjoys making things in the kitchen and wants to watch experts giving advice and demonstrating techniques.</p>
+                                        <select name="q10" class="w-full bg-white border border-indigo-300 rounded p-2 focus:ring-2 focus:ring-indigo-500">
+                                            <option value="" disabled selected>Select the best programme...</option>
+                                            <option value="A">A - Nature's Way</option>
+                                            <option value="B">B - The Big Laugh</option>
+                                            <option value="C">C - Island Life</option>
+                                            <option value="D">D - Historical Journeys</option>
+                                            <option value="E">E - City Streets</option>
+                                            <option value="F">F - The Cooking Competition</option>
+                                            <option value="G">G - Sports Weekly</option>
+                                            <option value="H">H - Music Makers</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Programmes -->
+                        <div>
+                            <h3 class="font-bold text-xl mb-4 border-b pb-2">Programmes</h3>
+                            
+                            <div class="space-y-4 text-sm">
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">A - Nature's Way</h4>
+                                    <p>Join us on a peaceful journey across the globe. From the freezing Arctic to the hot deserts, see amazing animals in their natural habitats. Stunning photography guaranteed.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">B - The Big Laugh</h4>
+                                    <p>A panel of comedians discuss the week's news. Always guaranteed to bring a smile to your face. However, the jokes are often aimed at adults, so not suitable for younger viewers.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">C - Island Life</h4>
+                                    <p>Meet the families who live on remote islands far away from modern cities. This documentary series combines fascinating stories about their daily challenges with plenty of light-hearted moments and jokes.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">D - Historical Journeys</h4>
+                                    <p>Our presenter uses the latest computer technology to rebuild ancient ruins. See exactly how the Romans and Egyptians lived in this informative, yet entertaining and highly amusing new series.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">E - City Streets</h4>
+                                    <p>A gritty new drama set in the heart of London. Follow the lives of three young police officers as they try to keep the streets safe. Fast-paced and serious action.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">F - The Cooking Competition</h4>
+                                    <p>Amateur chefs from across the country battle it out to become the champion. Watch as top restaurant owners judge their efforts and give useful tips on how to improve dishes at home.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">G - Sports Weekly</h4>
+                                    <p>All the latest action from the world of sport. We review the weekend's football, tennis, and athletics, and speak to the stars about their recent performances.</p>
+                                </div>
+                                <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <h4 class="font-bold">H - Music Makers</h4>
+                                    <p>A fantastic family show where teenagers showcase their singing talents. With celebrity judges and a huge cash prize for the winner, it's an exciting watch for all ages.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- PART 3 -->
+            <div class="mb-10 fade-in" style="animation-delay: 0.2s;">
+                <div class="bg-teal-50 text-teal-900 px-6 py-4 rounded-t-xl font-semibold text-lg border border-teal-200 flex justify-between items-center">
+                    <span>Part 3: Questions 11 - 20</span>
+                    <button type="button" onclick="document.getElementById('part3Content').classList.toggle('hidden')" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold py-2 px-4 rounded shadow transition flex items-center gap-2">
+                        <i class="fa-solid fa-book-open"></i> Show Text & Questions
+                    </button>
+                </div>
+                <div class="bg-white border border-teal-200 border-t-0 rounded-b-xl p-6 shadow-sm">
+                    <p class="mb-6 text-gray-600 italic">Click the "Show Text & Questions" button above to view the reading text and questions. Decide if each sentence is correct or incorrect. If it is correct, choose A. If it is not correct, choose B.</p>
+
+                    <div id="part3Content" class="hidden bg-gray-50 p-8 rounded-lg mb-8 flex flex-col gap-4 fade-in border border-gray-200 text-gray-800 leading-relaxed">
+                        <h3 class="text-2xl font-bold text-center mb-2">The Lindsay Kids of Steel Triathlon - Ontario, Canada</h3>
+                        
+                        <h4 class="font-bold text-lg text-teal-800">What is a Kids of Steel triathlon?</h4>
+                        <p>Triathlon is a sport that combines swimming, cycling and running. Kids of Steel events are designed to offer those aged 6 to 19 an opportunity to take part in a triathlon. It's all about having fun while keeping fit. While the races are challenging, they are short enough to make sure that everyone finishes in good time.</p>
+                        
+                        <h4 class="font-bold text-lg text-teal-800 mt-4">Who can take part?</h4>
+                        <p>The Lindsay triathlon is one of many such events that take place annually across the state of Ontario. These events are organised by the Ontario Association of Triathletes (OAT) and all the participants must be members of OAT. Membership costs $25 per year (for those aged 15 and under) and those without a full year-membership are required to buy a $6 one day membership on race day in order to take part.</p>
+                        
+                        <h4 class="font-bold text-lg text-teal-800 mt-4">Distances</h4>
+                        <p>The Kids of Steel distances change according to the age of the athletes. For example, 14-15-year-olds will swim 500m, cycle 16km and run 5km while the 6-7 year olds will swim 50m, cycle 1.5km and run 500m. Anyone who feels unable to do a whole race on their own is welcome to enter with up to two friends. In this way each person can do at least one part of the triathlon.</p>
+                        
+                        <h4 class="font-bold text-lg text-teal-800 mt-4">What must I do to take part?</h4>
+                        <p>The Lindsay triathlon will take place on Sunday 21st June, starting at the Lindsay Sports Centre. On Saturday 20th you will need to check that you have registered to race and also pick up your race bag. Bikes must be checked by a bike-repair expert and you will need to show a receipt to prove that the check was done.</p>
+                        <p>If this is your first race or you just feel you need some advice from experienced triathletes and coaches, there will be a 'clinic' on June 17th at the Lindsay Sports Centre. There's no fee or registration, just come along.</p>
+                        
+                        <h4 class="font-bold text-lg text-teal-800 mt-4">Helping out</h4>
+                        <p>It would be impossible to run these events if we didn't have the unpaid help of so many people. If you are a parent of one of the kids taking part and you would like to get more involved on the day, then please call Andy Robinson on (708) 663-3321. He'd love to hear from you. You won't get paid, but you will get a free T-shirt and you'll be able to go to the after-race lunch party. You will also have a great time and meet lots of people.</p>
+                    </div>
+
+                    <div class="flex flex-col gap-4 bg-teal-50/50 p-6 rounded-lg border border-teal-100">
+                        <!-- Question 11 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">11. It is expected that some children will fail to complete the races in the triathlon.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_11" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_11" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Question 12 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">12. There will be several triathlons held in the region this year.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_12" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_12" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 13 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">13. Everyone taking part in races has to have an annual membership with OAT.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_13" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_13" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 14 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">14. Athletes run, swim and cycle various distances, depending on their age.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_14" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_14" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 15 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">15. It is possible to do the triathlon as part of a team.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_15" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_15" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 16 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">16. Athletes need to collect their race bag the day before the main event.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_16" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_16" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 17 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">17. Before the race, athletes need to check their bikes themselves.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_17" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_17" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 18 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">18. People wanting to attend the 'clinic' on June 17th need to book and pay in advance.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_18" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_18" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 19 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">19. Parents are welcome to help out on the day of the event.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_19" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_19" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Question 20 -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded shadow-sm border border-teal-100 gap-4">
+                            <span class="font-semibold text-lg flex-1">20. Helpers have to bring their own food to eat on race day.</span>
+                            <div class="flex gap-4 shrink-0">
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_20" value="A" class="custom-radio">
+                                    <span class="font-semibold text-green-700">A</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded border transition">
+                                    <input type="radio" name="p3_20" value="B" class="custom-radio">
+                                    <span class="font-semibold text-red-700">B</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PART 4 -->
+            <div class="mb-10 fade-in" style="animation-delay: 0.25s;">
+                <div class="bg-fuchsia-50 text-fuchsia-900 px-6 py-4 rounded-t-xl font-semibold text-lg border border-fuchsia-200">
+                    Part 4: Questions 21 - 25
+                </div>
+                <div class="bg-white border border-fuchsia-200 border-t-0 rounded-b-xl p-6 shadow-sm">
+                    <p class="mb-6 text-gray-600 italic">Five sentences have been removed from the text below. For each question, choose the correct answer. There are three extra sentences which you do not need to use.</p>
+
+                    <div class="bg-gray-50 p-6 rounded-lg mb-8 text-lg leading-relaxed">
+                        <h3 class="text-2xl font-bold mb-4">A new way to travel</h3>
+                        <p class="mb-4">Imagine a train that can travel faster than an aeroplane. This might sound like science fiction, but it could soon become a reality. A new transport system called the Hyperloop is currently being developed. <span class="inline-block mx-1 font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-1 rounded">21</span> <select name="q21" class="bg-white border-2 border-fuchsia-400 rounded px-2 py-1 mx-1 font-semibold text-fuchsia-700 cursor-pointer outline-none focus:ring-2 focus:ring-fuchsia-500 text-base"><option value="" disabled selected>...</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option></select> It works by using a long tube that has most of the air removed from it.</p>
+                        
+                        <p class="mb-4">Inside the tube, special pods carry passengers or cargo. <span class="inline-block mx-1 font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-1 rounded">22</span> <select name="q22" class="bg-white border-2 border-fuchsia-400 rounded px-2 py-1 mx-1 font-semibold text-fuchsia-700 cursor-pointer outline-none focus:ring-2 focus:ring-fuchsia-500 text-base"><option value="" disabled selected>...</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option></select> Because there is almost no air resistance, the pods can reach incredibly high speeds using very little energy. They float above the track using magnets, which also makes the ride very smooth.</p>
+                        
+                        <p class="mb-4">Several companies around the world are trying to build the first working Hyperloop. <span class="inline-block mx-1 font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-1 rounded">23</span> <select name="q23" class="bg-white border-2 border-fuchsia-400 rounded px-2 py-1 mx-1 font-semibold text-fuchsia-700 cursor-pointer outline-none focus:ring-2 focus:ring-fuchsia-500 text-base"><option value="" disabled selected>...</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option></select> One test track has been built in the Nevada desert in the USA. Early tests have been successful, although the pods haven't reached their top speed yet.</p>
+                        
+                        <p class="mb-4">There are still many challenges to overcome before we can all buy a ticket. <span class="inline-block mx-1 font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-1 rounded">24</span> <select name="q24" class="bg-white border-2 border-fuchsia-400 rounded px-2 py-1 mx-1 font-semibold text-fuchsia-700 cursor-pointer outline-none focus:ring-2 focus:ring-fuchsia-500 text-base"><option value="" disabled selected>...</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option></select> Safety is also a major concern, as an accident at such high speeds would be disastrous. However, engineers are confident they can solve these problems.</p>
+                        
+                        <p>If successful, it could change the way we live and work. <span class="inline-block mx-1 font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-1 rounded">25</span> <select name="q25" class="bg-white border-2 border-fuchsia-400 rounded px-2 py-1 mx-1 font-semibold text-fuchsia-700 cursor-pointer outline-none focus:ring-2 focus:ring-fuchsia-500 text-base"><option value="" disabled selected>...</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option></select> It would make long-distance travel much easier and faster than it is today.</p>
+                    </div>
+
+                    <div class="mt-6 border-t pt-4">
+                        <h4 class="font-bold text-lg mb-4">Missing Sentences</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">A</span> People could live hundreds of miles away from their jobs and commute every day.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">B</span> They are competing to see who can create a safe and affordable system first.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">C</span> It promises to move people between cities at over 700 miles per hour.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">D</span> These vehicles are designed to be comfortable and quiet.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">E</span> Building the long tubes across different countries will be very expensive.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">F</span> Travelling by aeroplane is still the most popular way to go abroad.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">G</span> The pods use wheels like a normal train but go much faster.</div>
+                            <div class="p-3 bg-gray-50 border rounded"><span class="font-bold mr-2 text-fuchsia-700">H</span> The tickets will probably be much cheaper than flying.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PART 5 -->
+            <div class="mb-10 fade-in" style="animation-delay: 0.2s;">
+                <div class="bg-emerald-50 text-emerald-900 px-6 py-4 rounded-t-xl font-semibold text-lg border border-emerald-200">
+                    Part 5: Questions 26 - 35
+                </div>
+                <div class="bg-white border border-emerald-200 border-t-0 rounded-b-xl p-6 shadow-sm">
+                    <p class="mb-4 text-gray-600 italic">Read the text below and choose the correct word for each space.</p>
+                    
+                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 text-lg leading-relaxed mb-8">
+                        <h3 class="text-2xl font-bold text-center mb-6 text-gray-800">Dolphins in Scotland</h3>
+                        
+                        <p class="mb-4">
+                            The dolphin <em>(0) population</em> in the Moray Firth area of Scotland is very special. They are the most northerly bottlenose dolphins in the world with 
+                            <select name="q26" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(26)</option>
+                                <option value="A">between</option>
+                                <option value="B">among</option>
+                                <option value="C">over</option>
+                                <option value="D">towards</option>
+                            </select> 
+                            130 animals recorded so far.
+                        </p>
+                        
+                        <p class="mb-4">
+                            These 
+                            <select name="q27" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(27)</option>
+                                <option value="A">proper</option>
+                                <option value="B">particular</option>
+                                <option value="C">obvious</option>
+                                <option value="D">usual</option>
+                            </select> 
+                            dolphins are different from their relations living in warmer 
+                            <select name="q28" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(28)</option>
+                                <option value="A">atmospheres</option>
+                                <option value="B">spaces</option>
+                                <option value="C">seasons</option>
+                                <option value="D">environments</option>
+                            </select> 
+                            such as the Indian or Pacific oceans. They are a lot bigger and fatter (4m rather than 2.5m) this is due to the large 
+                            <select name="q29" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(29)</option>
+                                <option value="A">size</option>
+                                <option value="B">amount</option>
+                                <option value="C">pile</option>
+                                <option value="D">load</option>
+                            </select> 
+                            of fat (known as blubber) that their bodies 
+                            <select name="q30" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(30)</option>
+                                <option value="A">want</option>
+                                <option value="B">demand</option>
+                                <option value="C">wish</option>
+                                <option value="D">need</option>
+                            </select> 
+                            to keep them warm in the colder waters of the North Sea.
+                        </p>
+                        
+                        <p class="mb-4">
+                            Dolphins, unlike sharks, 
+                            <select name="q31" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(31)</option>
+                                <option value="A">do</option>
+                                <option value="B">have</option>
+                                <option value="C">are</option>
+                                <option value="D">can</option>
+                            </select> 
+                            not automatically replace their teeth when lost - they only have one set which has to 
+                            <select name="q32" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(32)</option>
+                                <option value="A">last</option>
+                                <option value="B">stay</option>
+                                <option value="C">keep</option>
+                                <option value="D">remain</option>
+                            </select> 
+                            for their whole life! They eat 8-15kg of fish a day, feeding largely on inshore 
+                            <select name="q33" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(33)</option>
+                                <option value="A">fishes</option>
+                                <option value="B">creatures</option>
+                                <option value="C">animals</option>
+                                <option value="D">beasts</option>
+                            </select> 
+                            that live on the sea bed.
+                        </p>
+                        
+                        <p>
+                            They live in very close family groups, 
+                            <select name="q34" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(34)</option>
+                                <option value="A">which</option>
+                                <option value="B">who</option>
+                                <option value="C">what</option>
+                                <option value="D">they</option>
+                            </select> 
+                            can be quite large. Local people around the Firth have seen dolphins for many years: there are reports from as 
+                            <select name="q35" class="bg-white border-2 border-emerald-400 rounded px-2 py-1 mx-1 font-semibold text-emerald-700 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="" disabled selected>(35)</option>
+                                <option value="A">long</option>
+                                <option value="B">much</option>
+                                <option value="C">far</option>
+                                <option value="D">old</option>
+                            </select> 
+                            ago as 1900.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center mt-8 mb-16">
+                <button type="submit" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-12 rounded-full shadow-lg text-xl transition transform hover:scale-105 flex items-center gap-3">
+                    <i class="fa-solid fa-paper-plane"></i> Submit Test
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform scale-95 transition-transform duration-300 my-8" id="modalContent">
+            
+            <div class="bg-blue-600 text-white p-6 text-center rounded-t-2xl">
+                <i class="fa-solid fa-square-poll-vertical text-5xl mb-4"></i>
+                <h2 class="text-3xl font-bold">Exam Results</h2>
+                <p class="text-blue-100 mt-2" id="resultNameDate">Candidate: Name | Date: Date</p>
+            </div>
+
+            <div class="p-8">
+                <div class="grid grid-cols-2 gap-4 mb-8 text-center">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-gray-500 text-sm font-semibold uppercase tracking-wide">Score</p>
+                        <p class="text-4xl font-black text-gray-800 mt-1" id="scoreDisplay">0/35</p>
+                        <p class="text-lg font-bold text-blue-600 mt-1" id="percentageDisplay">0%</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-gray-500 text-sm font-semibold uppercase tracking-wide">CEFR Level</p>
+                        <p class="text-4xl font-black text-emerald-600 mt-1" id="cefrDisplay">A2</p>
+                        <p class="text-sm font-semibold text-gray-600 mt-1" id="scaleScoreDisplay">Scale: 130</p>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2 border-b pb-2"><i class="fa-solid fa-comment-dots text-blue-500 mr-2"></i> Feedback & Recommendations</h3>
+                    <p class="text-gray-700 leading-relaxed" id="feedbackText">Loading feedback...</p>
+                </div>
+                
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 shadow-sm">
+                    <h4 class="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-bullseye"></i> Specific Study Plan
+                    </h4>
+                    <ul class="list-disc pl-5 text-amber-900 space-y-1 text-sm" id="studyRecommendations">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center gap-4 text-center">
+                    <button onclick="closeModal()" class="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3 px-8 rounded-lg transition shadow">
+                        Review Answers
+                    </button>
+                    <!-- Download button is still here if they want to download it AGAIN manually -->
+                    <button id="downloadPdfBtn" onclick="generatePDF()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition shadow flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> Download PDF Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Container for PDF Generation -->
+    <div id="pdfReportContainer">
+        <div style="background: linear-gradient(to right, #1e3a8a, #3b82f6); padding: 30px; border-bottom: 5px solid #fbbf24;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 1px;">Cambridge B1 Preliminary (PET)</h1>
+            <h2 style="color: #bfdbfe; margin: 8px 0 0 0; font-size: 22px; font-weight: 600;">Reading Practice Test Results</h2>
+        </div>
+        
+        <div style="padding: 40px; background-color: #ffffff;">
+            <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; margin-bottom: 35px; display: flex; justify-content: space-between; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                <div>
+                    <p style="margin: 0 0 5px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Candidate Name</p>
+                    <p style="margin: 0; color: #0f172a; font-size: 22px; font-weight: 900;" id="pdfName">Name</p>
+                </div>
+                <div style="text-align: right;">
+                    <p style="margin: 0 0 5px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Test Date</p>
+                    <p style="margin: 0; color: #0f172a; font-size: 22px; font-weight: 900;" id="pdfDate">Date</p>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 25px; margin-bottom: 40px;">
+                <div style="flex: 1; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; padding: 30px; border-radius: 16px; text-align: center; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);">
+                    <p style="margin: 0 0 10px 0; color: #1e40af; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Final Score</p>
+                    <p style="margin: 0; color: #1e3a8a; font-size: 56px; font-weight: 900; line-height: 1;" id="pdfScore">0/35</p>
+                    <div style="display: inline-block; background-color: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 18px; font-weight: bold; margin-top: 15px;" id="pdfPercentage">0% Correct</div>
+                </div>
+                <div style="flex: 1; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #a7f3d0; padding: 30px; border-radius: 16px; text-align: center; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);">
+                    <p style="margin: 0 0 10px 0; color: #065f46; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">CEFR Level</p>
+                    <p style="margin: 0; color: #047857; font-size: 56px; font-weight: 900; line-height: 1;" id="pdfCefr">A2</p>
+                    <div style="display: inline-block; background-color: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 18px; font-weight: bold; margin-top: 15px;" id="pdfScaleScore">Scale: 130</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: #0f172a; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 25px; font-size: 20px; font-weight: 800;">Performance Overview by Part</h3>
+                <div style="height: 220px; width: 100%;">
+                    <canvas id="pdfChart"></canvas>
+                </div>
+            </div>
+
+            <div style="background-color: #fffbeb; border-left: 6px solid #f59e0b; padding: 25px; border-radius: 8px; margin-bottom: 35px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h3 style="margin: 0 0 12px 0; color: #b45309; font-size: 18px; font-weight: 800;">Instructor Feedback</h3>
+                <p style="margin: 0; color: #78350f; line-height: 1.6; font-size: 16px;" id="pdfFeedback">Feedback goes here...</p>
+            </div>
+
+            <div>
+                <h3 style="color: #0f172a; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 20px; font-weight: 800;">Recommended Study Plan</h3>
+                <ul style="color: #334155; line-height: 1.7; padding-left: 25px; font-size: 16px; font-weight: 500;" id="pdfRecommendations">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+            
+            <div style="margin-top: 60px; text-align: center; color: #94a3b8; font-size: 13px; font-weight: 600; border-top: 1px solid #e2e8f0; padding-top: 25px;">
+                Generated automatically by the Cambridge PET Reading Practice Platform
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Set default date to today
+        document.getElementById('examDate').valueAsDate = new Date();
+
+        // Answers Key
+        const answers = {
+            q1: 'C', q2: 'B', q3: 'A', q4: 'B', q5: 'B',
+            q6: 'C', q7: 'D', q8: 'A', q9: 'H', q10: 'F', // Added answers for Part 2
+            p3_11: 'B', p3_12: 'A', p3_13: 'B', p3_14: 'A', p3_15: 'A', p3_16: 'A', p3_17: 'B', p3_18: 'B', p3_19: 'A', p3_20: 'B', // Corrected answers for Part 3
+            q21: 'C', q22: 'D', q23: 'B', q24: 'E', q25: 'A', // Added answers for Part 4
+            q26: 'C', q27: 'B', q28: 'D', q29: 'B', q30: 'D',
+            q31: 'A', q32: 'B', q33: 'A', q34: 'C', q35: 'B'
+        };
+
+        // Timer Logic
+        let timeLeft = 45 * 60; // 45 minutes
+        const timerDisplay = document.getElementById('timer');
+        
+        const timerInterval = setInterval(() => {
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = "00:00";
+                timerDisplay.classList.add('text-red-300');
+                alert("Time is up! Submitting your test automatically.");
+                document.getElementById('examForm').dispatchEvent(new Event('submit'));
+                return;
+            }
+            
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Warning at 5 minutes
+            if(timeLeft === 300) {
+                timerDisplay.classList.add('text-red-300', 'animate-pulse');
+            }
+        }, 1000);
+
+        // Global variables for PDF generation
+        let pdfChartInstance = null;
+        let testResultsData = {};
+
+        async function submitExam(e) {
+            e.preventDefault();
+            
+            // Validation removed: default to Anonymous if not provided
+            const name = document.getElementById('candidateName').value || 'Anonymous Candidate';
+            const date = document.getElementById('examDate').value || new Date().toLocaleDateString();
+
+            clearInterval(timerInterval); // Stop timer
+
+            // Update button UI to show it's working
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Grading & Generating PDF...';
+            submitBtn.disabled = true;
+
+            let score = 0;
+            let maxScore = Object.keys(answers).length;
+            
+            // Track scores per part for the chart
+            let partScores = {
+                part1: { score: 0, total: 5 },
+                part2: { score: 0, total: 5 },
+                part3: { score: 0, total: 10 },
+                part4: { score: 0, total: 5 },
+                part5: { score: 0, total: 10 }
+            };
+
+            // Check answers and highlight UI
+            for (let [question, correctAnswer] of Object.entries(answers)) {
+                let userInputs = document.getElementsByName(question);
+                let userAnswer = "";
+                let isCorrect = false;
+                
+                // Determine which part this question belongs to
+                let partKey = '';
+                if(question.startsWith('q1') && question.length == 2 || question.startsWith('q2') && question.length == 2 || question.startsWith('q3') && question.length == 2 || question.startsWith('q4') || question.startsWith('q5')) partKey = 'part1';
+                else if(question.startsWith('q6') || question.startsWith('q7') || question.startsWith('q8') || question.startsWith('q9') || question.startsWith('q10')) partKey = 'part2';
+                else if(question.startsWith('p3_')) partKey = 'part3';
+                else if(question.startsWith('q21') || question.startsWith('q22') || question.startsWith('q23') || question.startsWith('q24') || question.startsWith('q25')) partKey = 'part4';
+                else partKey = 'part5';
+
+                // Handle Radio buttons (Part 1, 3) and Selects (Part 2, 4, 5) and Text Inputs (Part 6)
+                if(userInputs[0] && userInputs[0].tagName.toLowerCase() === 'input' && userInputs[0].type === 'radio') {
+                    for (let input of userInputs) {
+                        if (input.checked) userAnswer = input.value;
+                        
+                        // Disable inputs after submit
+                        input.disabled = true; 
+                        
+                        // Highlight correct/incorrect for radios
+                        let label = input.closest('label');
+                        if (input.value === correctAnswer) {
+                            label.classList.add('bg-green-100', 'border-green-400');
+                            if (label.classList.contains('hover:bg-gray-50')) {
+                                label.classList.remove('hover:bg-gray-50');
+                            }
+                            if (label.classList.contains('border-transparent')) {
+                                label.classList.remove('border-transparent');
+                            }
+                            // Add checkmark next to correct answer label text
+                            let checkmark = document.createElement('i');
+                            checkmark.className = 'fa-solid fa-check text-green-600 ml-2';
+                            label.querySelector('span').appendChild(checkmark);
+                        } else if (input.checked && input.value !== correctAnswer) {
+                            label.classList.add('bg-red-100', 'border-red-400');
+                            if (label.classList.contains('hover:bg-gray-50')) {
+                                label.classList.remove('hover:bg-gray-50');
+                            }
+                            if (label.classList.contains('border-transparent')) {
+                                label.classList.remove('border-transparent');
+                            }
+                        }
+                    }
+                    isCorrect = userAnswer === correctAnswer;
+                    
+                    // Show correct answer if the user got it wrong or didn't answer
+                    if (!isCorrect) {
+                         for (let input of userInputs) {
+                            if (input.value === correctAnswer) {
+                                let label = input.closest('label');
+                                label.classList.add('border-green-400', 'bg-green-50'); // Give it a border to show it was correct
+                                if (label.classList.contains('border-transparent')) {
+                                    label.classList.remove('border-transparent');
+                                }
+                                // Add checkmark next to correct answer label text
+                                let checkmark = document.createElement('i');
+                                checkmark.className = 'fa-solid fa-check text-green-600 ml-2';
+                                label.querySelector('span').appendChild(checkmark);
+                            }
+                         }
+                    }
+                } else if (userInputs[0] && userInputs[0].tagName.toLowerCase() === 'select') {
+                    let select = userInputs[0];
+                    userAnswer = select.value;
+                    select.disabled = true;
+                    
+                    // Specific highlight handling based on parent styling
+                    let isPart4Select = select.name.startsWith('q21') || select.name.startsWith('q22') || select.name.startsWith('q23') || select.name.startsWith('q24') || select.name.startsWith('q25');
+                    let isPart5Select = select.name.startsWith('q26') || select.name.startsWith('q27') || select.name.startsWith('q28') || select.name.startsWith('q29') || select.name.startsWith('q3');
+                    let baseBorderClass = isPart4Select ? 'border-fuchsia-400' : (isPart5Select ? 'border-emerald-400' : 'border-indigo-300');
+                    let baseTextClass = isPart4Select ? 'text-fuchsia-700' : (isPart5Select ? 'text-emerald-700' : '');
+
+                    if (userAnswer === correctAnswer) {
+                        if (select.classList.contains(baseBorderClass)) select.classList.remove(baseBorderClass);
+                        if (baseTextClass && select.classList.contains(baseTextClass)) select.classList.remove(baseTextClass);
+                        select.classList.add('border-green-500', 'text-green-700', 'bg-green-100');
+                    } else {
+                        if (select.classList.contains(baseBorderClass)) select.classList.remove(baseBorderClass);
+                        if (baseTextClass && select.classList.contains(baseTextClass)) select.classList.remove(baseTextClass);
+                        select.classList.add('border-red-500', 'text-red-700', 'bg-red-100');
+                        // Show correct answer next to it
+                        let span = document.createElement('span');
+                        span.className = 'text-xs text-green-600 font-bold ml-1';
+                        span.textContent = `(Correct: ${correctAnswer})`;
+                        select.parentNode.insertBefore(span, select.nextSibling);
+                    }
+                    isCorrect = userAnswer === correctAnswer;
+                } else if (userInputs[0] && userInputs[0].tagName.toLowerCase() === 'input' && userInputs[0].type === 'text') {
+                     let input = userInputs[0];
+                     userAnswer = input.value.trim().toLowerCase();
+                     input.disabled = true;
+
+                     // correctAnswer is an array for text inputs
+                     if (correctAnswer.includes(userAnswer)) {
+                         input.classList.remove('border-orange-400');
+                         input.classList.add('border-green-500', 'text-green-700', 'bg-green-50');
+                         isCorrect = true;
+                     } else {
+                         input.classList.remove('border-orange-400');
+                         input.classList.add('border-red-500', 'text-red-700', 'bg-red-50');
+                         let span = document.createElement('span');
+                         span.className = 'text-xs text-green-600 font-bold ml-1 block text-center mt-1';
+                         span.textContent = `(${correctAnswer[0]})`; // Show first correct option
+                         input.parentNode.insertBefore(span, input.nextSibling);
+                         isCorrect = false;
+                     }
+                }
+
+                if (isCorrect) {
+                    score++;
+                    partScores[partKey].score++;
+                }
+            }
+            
+            testResultsData = {
+                name: name,
+                date: date,
+                score: score,
+                maxScore: maxScore,
+                partScores: partScores
+            };
+
+            // Calculate feedback and data
+            populateResultsData(testResultsData);
+            
+            // Automatically trigger the PDF generation and download
+            await generatePDF();
+
+            // Finally, show the results modal for on-screen viewing
+            showResultsModal(testResultsData);
+            
+            // Hide the submit button and scroll top
+            submitBtn.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function populateResultsData(data) {
+            const percentage = Math.round((data.score / data.maxScore) * 100);
+            
+            // Cambridge Scale Conversion Logic (Based on PET B1 standard curves for 32 item Reading tests)
+            let cefr = "";
+            let scale = 0;
+            let feedback = "";
+            let recommendations = [];
+
+            if (data.score >= 32) { // Approx 91%+
+                cefr = "B2 (Grade A)";
+                scale = 160 + Math.floor(((data.score - 32) / (data.maxScore - 32)) * 10); // 160-170
+                feedback = "Excellent performance! You have demonstrated a strong proficiency that borders on the upper-intermediate B2 level. You easily understand detailed texts and extract accurate vocabulary in context.";
+                recommendations = [
+                    "Begin practicing with B2 First (FCE) reading materials.",
+                    "Focus on reading complex articles from newspapers like The Guardian or BBC News.",
+                    "Work on advanced collocations and nuanced vocabulary."
+                ];
+            } else if (data.score >= 29) { // Approx 82-88%
+                cefr = "B1 (Grade B)";
+                scale = 153 + Math.floor(((data.score - 29) / 3) * 6); // 153-159
+                feedback = "Great job! You have a solid grasp of the B1 Preliminary syllabus. You accurately interpret notices and can successfully complete cloze texts with good vocabulary knowledge.";
+                recommendations = [
+                    "To reach B2, try to increase your reading speed.",
+                    "Review easily confused vocabulary (e.g. among vs between, amount vs size).",
+                    "Read short fiction books graded at the B1/B2 level."
+                ];
+            } else if (data.score >= 23) { // Approx 65-80%
+                cefr = "B1 (Grade C)";
+                scale = 140 + Math.floor(((data.score - 23) / 6) * 12); // 140-152
+                feedback = "Good work. You have achieved a passing grade at the B1 level. While you understand the general meaning of texts, you might sometimes miss the specific details or tricky vocabulary.";
+                recommendations = [
+                    "Practice looking for synonyms in texts (the answer is often a synonym of the text).",
+                    "Create a vocabulary notebook for unknown words from this practice test.",
+                    "Do more targeted practice on Part 5 (Multiple Choice Cloze) focusing on prepositions and pronouns."
+                ];
+            } else if (data.score >= 13) { // Approx 37-62%
+                cefr = "A2";
+                scale = 120 + Math.floor(((data.score - 13) / 10) * 19); // 120-139
+                feedback = "You are currently demonstrating an A2 (Key) level of reading comprehension. B1 texts are currently a bit challenging for you, especially regarding vocabulary and exact interpretation.";
+                recommendations = [
+                    "Review the core A2/B1 Cambridge vocabulary lists.",
+                    "Practice reading shorter, simpler texts and summarizing them.",
+                    "Pay close attention to negative words (not, never, forbidden) in Part 1 notices."
+                ];
+            } else { // 0-12
+                cefr = "A1 / Fail";
+                scale = data.score < 6 ? "< 100" : 100 + Math.floor(((data.score - 6) / 6) * 19);
+                feedback = "This test was quite difficult for your current level. Don't worry! Reading comprehension takes time and practice to develop.";
+                recommendations = [
+                    "Focus entirely on A2 Key material before returning to B1 Preliminary.",
+                    "Build fundamental vocabulary using flashcards.",
+                    "Practice basic grammar structures (present perfect, comparatives)."
+                ];
+            }
+            
+            // Save data for PDF and UI
+            testResultsData.percentage = percentage;
+            testResultsData.cefr = cefr;
+            testResultsData.scale = scale;
+            testResultsData.feedback = feedback;
+            testResultsData.recommendations = recommendations;
+        }
+        
+        function showResultsModal(data) {
+            // Populate Modal UI
+            document.getElementById('resultNameDate').textContent = `Candidate: ${data.name} | Date: ${data.date}`;
+            document.getElementById('scoreDisplay').textContent = `${data.score}/${data.maxScore}`;
+            document.getElementById('percentageDisplay').textContent = `${data.percentage}%`;
+            document.getElementById('cefrDisplay').textContent = data.cefr;
+            document.getElementById('scaleScoreDisplay').textContent = `Cambridge Scale: ${data.scale}`;
+            document.getElementById('feedbackText').textContent = data.feedback;
+            
+            const recsList = document.getElementById('studyRecommendations');
+            recsList.innerHTML = '';
+            data.recommendations.forEach(rec => {
+                let li = document.createElement('li');
+                li.textContent = rec;
+                recsList.appendChild(li);
+            });
+
+            // Show Modal
+            const modal = document.getElementById('resultsModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modalContent').classList.remove('scale-95');
+                document.getElementById('modalContent').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('resultsModal');
+            document.getElementById('modalContent').classList.remove('scale-100');
+            document.getElementById('modalContent').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        async function generatePDF() {
+            // Disable button if triggered manually via modal
+            const btn = document.getElementById('downloadPdfBtn');
+            const originalContent = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
+                btn.disabled = true;
+            }
+
+            try {
+                // Prepare PDF container (make it visible but positioned off-screen)
+                const pdfContainer = document.getElementById('pdfReportContainer');
+                pdfContainer.style.opacity = '1';
+                
+                // Populate PDF Container Data
+                document.getElementById('pdfName').textContent = testResultsData.name;
+                document.getElementById('pdfDate').textContent = testResultsData.date;
+                document.getElementById('pdfScore').textContent = `${testResultsData.score}/${testResultsData.maxScore}`;
+                document.getElementById('pdfPercentage').textContent = `${testResultsData.percentage}% Correct`;
+                document.getElementById('pdfCefr').textContent = testResultsData.cefr;
+                document.getElementById('pdfScaleScore').textContent = `Scale Score: ${testResultsData.scale}`;
+                document.getElementById('pdfFeedback').textContent = testResultsData.feedback;
+                
+                const pdfRecsList = document.getElementById('pdfRecommendations');
+                pdfRecsList.innerHTML = '';
+                testResultsData.recommendations.forEach(rec => {
+                    let li = document.createElement('li');
+                    li.textContent = rec;
+                    li.style.marginBottom = "8px";
+                    pdfRecsList.appendChild(li);
+                });
+
+                // Generate Chart
+                const ctx = document.getElementById('pdfChart').getContext('2d');
+                
+                // Destroy old chart if it exists
+                if(pdfChartInstance) {
+                    pdfChartInstance.destroy();
+                }
+
+                // Calculate percentages for each part
+                const p1Pct = (testResultsData.partScores.part1.score / testResultsData.partScores.part1.total) * 100;
+                const p2Pct = (testResultsData.partScores.part2.score / testResultsData.partScores.part2.total) * 100;
+                const p3Pct = (testResultsData.partScores.part3.score / testResultsData.partScores.part3.total) * 100;
+                const p4Pct = (testResultsData.partScores.part4.score / testResultsData.partScores.part4.total) * 100;
+                const p5Pct = (testResultsData.partScores.part5.score / testResultsData.partScores.part5.total) * 100;
+
+                pdfChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Part 1 (Notices)', 'Part 2 (Matching)', 'Part 3 (T/F)', 'Part 4 (Sentences)', 'Part 5 (Cloze)'],
+                        datasets: [{
+                            label: 'Percentage Correct by Part',
+                            data: [p1Pct, p2Pct, p3Pct, p4Pct, p5Pct],
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.7)',
+                                'rgba(99, 102, 241, 0.7)',
+                                'rgba(20, 184, 166, 0.7)',
+                                'rgba(217, 70, 239, 0.7)',
+                                'rgba(16, 185, 129, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgb(37, 99, 235)',
+                                'rgb(79, 70, 229)',
+                                'rgb(13, 148, 136)',
+                                'rgb(192, 38, 211)',
+                                'rgb(5, 150, 105)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false, // Important for html2canvas to capture immediately
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Percentage (%)',
+                                    font: { weight: 'bold' }
+                                }
+                            },
+                            x: {
+                                ticks: { font: { weight: 'bold' } }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+
+                // Wait for chart and fonts to render fully
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                const canvas = await html2canvas(pdfContainer, {
+                    scale: 2, // Higher resolution
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: "#ffffff"
+                });
+
+                // Hide the container again
+                pdfContainer.style.opacity = '0';
+
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'p',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                
+                // Calculate dimensions to fit A4
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                
+                // Save the PDF
+                const cleanName = testResultsData.name ? testResultsData.name.replace(/\s+/g, '_') : 'Candidate';
+                const fileName = `PET_Reading_Results_${cleanName}.pdf`;
+                pdf.save(fileName);
+
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert("There was an error generating the PDF. Please try again.");
+            } finally {
+                // Restore button state
+                if (btn) {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
